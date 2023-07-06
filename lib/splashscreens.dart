@@ -1,7 +1,5 @@
-import 'package:flood_relief_system/auth/login.dart';
 import 'package:flutter/material.dart';
 import 'package:flood_relief_system/home.dart';
-import 'package:flood_relief_system/interface.dart';
 
 class splash extends StatefulWidget {
   const splash({Key? key}) : super(key: key);
