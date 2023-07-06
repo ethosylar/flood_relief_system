@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "342541042936",
+    "firebase_url": "https://flood-relief-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "flood-relief-system",
+    "storage_bucket": "flood-relief-system.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:342541042936:android:5fb7ad406a3771b982270d",
+        "android_client_info": {
+          "package_name": "com.example.flood_relief_system"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "342541042936-qlv4jghlsjbc7i88deduf40c21q2v6bi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4TjwlEXP8D6Ztm8H0mJHaw49L9aUORZw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "342541042936-qlv4jghlsjbc7i88deduf40c21q2v6bi.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "342541042936-ecdsdfa2p9ddt5l2pg60fquqbhq4g8es.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.floodReliefSystemVersion1"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
