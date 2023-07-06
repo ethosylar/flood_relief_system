@@ -165,7 +165,7 @@ class _HomePageState extends State<HomePage> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     ));
   }
-
+  //Camera pans to the current location
   Future<void> _goToUitm() async {
     final GoogleMapController controller = await _controller.future;
     controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
@@ -177,7 +177,7 @@ class _HomePageState extends State<HomePage> {
         tilt: 59.440717697143555,
         zoom: 19.151926040649414)));
   }
-
+  //Signin Popup Submit Exit Navigator
   void submit(){
     context.read<AuthenticationService>().signIn(
         email: emailController.text,
@@ -185,7 +185,7 @@ class _HomePageState extends State<HomePage> {
 
     Navigator.of(context).pop();
   }
-
+  //Signin Popup Dialog Box
   void _showLoginPopup(BuildContext context) {
     showDialog(
       context: context,
@@ -195,6 +195,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+ //Shows the location of the PPS on tapping the map
   void _onMapTapped(LatLng latLng) async{
     setState(() {
       _tappedLocation = latLng;
@@ -245,23 +246,9 @@ class _HomePageState extends State<HomePage> {
         },
       );
     }
-/*
-    // Remove previous tapped location marker if any
-    if (_tappedLocationMarker != null) {
-      _markers.remove(_tappedLocationMarker!);
-    }
-
-    // Create new tapped location marker
-    _tappedLocationMarker = Marker(
-      markerId: MarkerId('tappedLocation'),
-      position: latLng,
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-    );
-
-    _markers.add(_tappedLocationMarker!);
-    _showLocationInfoDialog();*/
   }
 
+  //Add PPS Location when tapped on the map
   void _uploadLocationToFirestore() async {
     if (_tappedLocation == null) {
       // No location is selected
