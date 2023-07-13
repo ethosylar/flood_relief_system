@@ -101,7 +101,7 @@ class _SignupPopupState extends State<SignupPopup> {
   }
 
   void addUser(Users user, BuildContext context) {
-    final userRef = FirebaseFirestore.instance.collection('User').doc();
+    final userRef = FirebaseFirestore.instance.collection('User').doc('FloodVictim');
     user.user_id = userRef.id;
     final data = user.toJson();
     userRef.set(data).whenComplete(() {
