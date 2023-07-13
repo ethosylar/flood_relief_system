@@ -92,6 +92,7 @@ class _HomePageState extends State<HomePage> {
         markers: {
           if (_currentLocationMarker != null) _currentLocationMarker!,
           if (_tappedLocationMarker != null) _tappedLocationMarker!,
+          if (currentLocation != null)
           Marker(
             markerId: MarkerId('currentLocation'),
             position: LatLng(

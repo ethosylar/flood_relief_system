@@ -9,15 +9,17 @@ class Users {
   String? name;
   DateTime? createAt;
   String? phoneno;
+  String? userType;
 
-  Users({this.user_id, required this.email, required this.createAt, required this.name, required this.phoneno});
+  Users({this.user_id, required this.email, required this.createAt, required this.name, required this.phoneno,  this.userType});
 
   factory Users.fromJson(Map<String, dynamic> json) => Users(
         user_id: json["user_id"],
         email: json["email"],
         createAt: json["createAt"],
         name: json["name"],
-        phoneno: json["phoneno"],
+        phoneno: json["phone"],
+        userType: json["userType"]
       );
 
   String? getEmail() {
@@ -53,11 +55,12 @@ class Users {
   }
 
   Map<String, dynamic> toJson() => {
-        "id": user_id,
+        "user_id": user_id,
         "name": name,
         "email": email,
         "createAt": createAt,
         "phone": phoneno,
+        "userType": userType,
       };
 }
 
