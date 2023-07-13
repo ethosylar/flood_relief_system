@@ -142,8 +142,9 @@ class _SignupPopupState extends State<SignupPopup> {
       // Successful signup, do something (e.g., navigate to the next screen)
       print('Signup successful!');
       print('User: ${userCredential.user?.email}');
-
+      //String userId = userCredential.user?.uid ?? '';
       FloodVictim fv = FloodVictim(
+        //user_id: userId,
         name: _nameController.text,
         email: _emailController.text,
         phoneno: _phoneController.text,
@@ -165,13 +166,22 @@ class _SignupPopupState extends State<SignupPopup> {
 
   Future<void> addUser(FloodVictim fv) async {
     final userRef = FirebaseFirestore.instance.collection('User');
-    final uuid = Uuid();
-    fv.user_id = uuid.v4();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     fv.userType = "FloodVictim";
+    fv.user_id = uid;
     /*
     userRef.set(data).whenComplete(() {
       print('User inserted.');
     });*/
-    await userRef.add(fv.toJson());
+    if (uid != null) {
+      final userDocRef = userRef.doc(uid);
+      await userDocRef.set(fv.toJson());
+
+      // Document successfully created
+      print('User inserted with UID: $uid');
+    } else {
+      // Unable to get the current user UID
+      print('Error: Unable to get the current user UID');
+    }
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flood_relief_system/pps_list.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -31,11 +32,74 @@ class _HomePageState extends State<HomePage> {
   Marker? _currentLocationMarker;
   Marker? _tappedLocationMarker;
   final CollectionReference _placemarkCollection = FirebaseFirestore.instance.collection('PPS');
+  StreamSubscription<DocumentSnapshot>? _locationSubscription;
+  LatLng? _userBLocation;
+  Marker? _userBMarker;
 
   void initState() {
     super.initState();
     getCurrentLocation();
     requestLocationPermission();
+    _startLocationUpdates();
+  }
+
+  @override
+  void dispose() {
+    // Stop listening to the location updates when the widget is disposed
+    _stopLocationUpdates();
+    super.dispose();
+  }
+
+  void _startLocationUpdates() {
+    // Replace 'userBUID' with the actual UID of user B
+    String userBUID = 'userBUID';
+
+    _locationSubscription = FirebaseFirestore.instance
+        .collection('user_locations')
+        .doc(userBUID)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        // Retrieve the live location data of user B from the snapshot
+        double latitude = snapshot.data()?['latitude'];
+        double longitude = snapshot.data()?['longitude'];
+
+        if (latitude != null && longitude != null) {
+          // Update the user B location
+          setState(() {
+            _userBLocation = LatLng(latitude, longitude);
+          });
+
+          // Update the marker for user B's location
+          _updateUserBMarker();
+        }
+      }
+    });
+  }
+
+  void _stopLocationUpdates() {
+    _locationSubscription?.cancel();
+    _userBLocation = null;
+    _userBMarker = null;
+  }
+
+  void _updateUserBMarker() {
+    setState(() {
+      if (_userBMarker != null) {
+        // Remove the previous marker for user B's location
+        _markers.remove(_userBMarker!);
+      }
+
+      if (_userBLocation != null) {
+        // Add a new marker for user B's location
+        _userBMarker = Marker(
+          markerId: MarkerId('userB'),
+          position: _userBLocation!,
+          infoWindow: InfoWindow(title: 'Your Rescuers Location'),
+        );
+        _markers.add(_userBMarker!);
+      }
+    });
   }
 
   Future<void> requestLocationPermission() async {
@@ -65,6 +129,7 @@ class _HomePageState extends State<HomePage> {
       currentLocation = position;
     });
   }
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -78,8 +143,11 @@ class _HomePageState extends State<HomePage> {
             IconButton(
               icon: Icon(Icons.logout),
               onPressed: () {
-
                 context.read<AuthenticationService>().signOut();
+                Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (BuildContext context) => HomePage()));
               }, // Reload data on refresh icon pressed
             ),
           ]),
@@ -91,18 +159,19 @@ class _HomePageState extends State<HomePage> {
         ),
         markers: {
           if (_currentLocationMarker != null) _currentLocationMarker!,
+          if (_userBMarker != null) _userBMarker!,
+          if (_currentLocationMarker != null) _currentLocationMarker!,
           if (_tappedLocationMarker != null) _tappedLocationMarker!,
           if (currentLocation != null)
-          Marker(
-            markerId: MarkerId('currentLocation'),
-            position: LatLng(
-              currentLocation!.latitude,
-              currentLocation!.longitude,
+            Marker(
+              markerId: MarkerId('currentLocation'),
+              position: LatLng(
+                currentLocation!.latitude,
+                currentLocation!.longitude,
+              ),
+              infoWindow: InfoWindow(title: 'You Are Here!'),
             ),
-            infoWindow: InfoWindow(title: 'You Are Here!'),
-          ),
         },
-
         onMapCreated: (GoogleMapController controller) {
           _controller.complete(controller);
         },
@@ -123,7 +192,9 @@ class _HomePageState extends State<HomePage> {
               ),
               onPressed: () {
                 Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (BuildContext context) => HomePage()));
+                    context,
+                    MaterialPageRoute(
+                        builder: (BuildContext context) => HomePage()));
               },
             ),
             IconButton(
@@ -145,7 +216,9 @@ class _HomePageState extends State<HomePage> {
               ),
               onPressed: () {
                 Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (BuildContext context) => PPSList()));
+                    context,
+                    MaterialPageRoute(
+                        builder: (BuildContext context) => PPSList()));
               },
             ),
             IconButton(
@@ -160,32 +233,82 @@ class _HomePageState extends State<HomePage> {
       ),
       //implement the floating button
       floatingActionButton: FloatingActionButton(
-          onPressed: _goToUitm,
+          onPressed: _sendHelp,
           backgroundColor: Colors.black38,
           child: const Icon(Icons.add)),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     ));
   }
+
   //Camera pans to the current location
-  Future<void> _goToUitm() async {
-    final GoogleMapController controller = await _controller.future;
-    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+  Future<void> _sendHelp() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    User? user = auth.currentUser;
+    if (user != null) {
+      // User is logged in, proceed with sending location data
+      // Add location data to Firestore
+      CollectionReference locationCollection =
+          FirebaseFirestore.instance.collection('user_locations');
+      locationCollection.add({
+        'userId': user.uid,
+        'latitude': currentLocation!.latitude,
+        'longitude': currentLocation!.longitude,
+        'timestamp': DateTime.now(),
+      });
+
+      // Animate the camera to the current location
+      final GoogleMapController controller = await _controller.future;
+      controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
         bearing: 192.8334901395799,
         target: LatLng(
           currentLocation!.latitude,
           currentLocation!.longitude,
         ),
         tilt: 59.440717697143555,
-        zoom: 19.151926040649414)));
+        zoom: 19.151926040649414,
+      )
+      )
+      );
+      setState(() {
+        _currentLocationMarker = Marker(
+          markerId: MarkerId('currentLocation'),
+          position: LatLng(
+            currentLocation!.latitude,
+            currentLocation!.longitude,
+          ),
+          infoWindow: InfoWindow(title: 'You Are Here!'),
+        );
+        _markers.add(_currentLocationMarker!);
+      });
+    } else {
+      // User is not logged in, show a prompt to log in
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Not Logged In'),
+            content: Text('Please log in to send help.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
+
   //Signin Popup Submit Exit Navigator
-  void submit(){
-    context.read<AuthenticationService>().signIn(
-        email: emailController.text,
-        pass: passwordController.text);
+  void submit() {
+    context
+        .read<AuthenticationService>()
+        .signIn(email: emailController.text, pass: passwordController.text);
 
     Navigator.of(context).pop();
   }
+
   //Signin Popup Dialog Box
   void _showLoginPopup(BuildContext context) {
     showDialog(
@@ -196,8 +319,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
- //Shows the location of the PPS on tapping the map
-  void _onMapTapped(LatLng latLng) async{
+  //Shows the location of the PPS on tapping the map
+  void _onMapTapped(LatLng latLng) async {
     setState(() {
       _tappedLocation = latLng;
     });
@@ -312,5 +435,4 @@ class _HomePageState extends State<HomePage> {
       );
     }
   }
-
 }
