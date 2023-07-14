@@ -3,6 +3,7 @@ import 'package:flood_relief_system/auth/signup_popup.dart';
 import 'package:flood_relief_system/home.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../AdminHomePage.dart';
 import '../RescuerHomePage.dart';
@@ -102,10 +103,7 @@ class _LoginPopupState extends State<LoginPopup> {
             );
             break;
           case 'Rescuer':
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (BuildContext context) => RescuerPage()),
-            );
+            _addRescuerLocationToDatabase;
             break;
           case 'Admin':
             Navigator.pushReplacement(
@@ -129,7 +127,49 @@ class _LoginPopupState extends State<LoginPopup> {
     );
   }
 
-  void navigateToRespectivePage(String userType, BuildContext context) {
+  Future<void> _addRescuerLocationToDatabase() async {
+    // Retrieve the current location of the Rescuer
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    User? user = FirebaseAuth.instance.currentUser;
+
+    // Get the UID of the logged-in Rescuer
+    if (user != null) {
+      String rescuerUid = user.uid;
+
+      // Update the Rescuer's location in the Firestore database
+      CollectionReference rescuersCollection = FirebaseFirestore.instance.collection('Rescuers');
+      await rescuersCollection.doc(rescuerUid).set({
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'timestamp': DateTime.now(),
+      });
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (BuildContext context) => RescuerPage()),
+      );
+    } else {
+      // User is not logged in, show a prompt to log in
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Not Logged In'),
+            content: Text('Please log in to add your location.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
 
   }
 }
