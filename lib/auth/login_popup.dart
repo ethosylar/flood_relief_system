@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flood_relief_system/RescuerLocation.dart';
 import 'package:flood_relief_system/auth/signup_popup.dart';
 import 'package:flood_relief_system/home.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 
 import '../AdminHomePage.dart';
 import '../RescuerHomePage.dart';
@@ -93,6 +95,7 @@ class _LoginPopupState extends State<LoginPopup> {
 
       if (userSnapshot.exists) {
         String userType = userSnapshot.get('userType');
+        BuildContext context = this.context;
 
         // Check the user type and perform actions accordingly
         switch (userType) {
@@ -103,7 +106,7 @@ class _LoginPopupState extends State<LoginPopup> {
             );
             break;
           case 'Rescuer':
-            _addRescuerLocationToDatabase;
+            _addRescuerLocationToDatabase(context);
             break;
           case 'Admin':
             Navigator.pushReplacement(
@@ -127,10 +130,10 @@ class _LoginPopupState extends State<LoginPopup> {
     );
   }
 
-  Future<void> _addRescuerLocationToDatabase() async {
+  Future<void> _addRescuerLocationToDatabase(BuildContext context) async {
     // Retrieve the current location of the Rescuer
     Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
+      desiredAccuracy: LocationAccuracy.best,
     );
 
     User? user = FirebaseAuth.instance.currentUser;
@@ -138,14 +141,22 @@ class _LoginPopupState extends State<LoginPopup> {
     // Get the UID of the logged-in Rescuer
     if (user != null) {
       String rescuerUid = user.uid;
+      DateTime datetime = DateTime.now();
+      final DateFormat formatter = DateFormat('yyyy-MM-dd-HH:mm:ss');
+      final String formatted = formatter.format(datetime);
+      String rescuerIdLocation = rescuerUid + formatted;
 
       // Update the Rescuer's location in the Firestore database
-      CollectionReference rescuersCollection = FirebaseFirestore.instance.collection('Rescuers');
-      await rescuersCollection.doc(rescuerUid).set({
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-        'timestamp': DateTime.now(),
-      });
+      CollectionReference rescuersCollection = FirebaseFirestore.instance.collection('help_rescuers');
+      final rescuerDocRef = rescuersCollection.doc(rescuerUid);
+      RescuersLocation rl = RescuersLocation(
+        rescuers_id: rescuerUid,
+        rescuer_id_location: rescuerIdLocation,
+        location_res_lat: position.latitude,
+        location_res_long: position.longitude,
+        datetime: datetime,
+      );
+      await rescuerDocRef.set(rl.toJson());
 
       Navigator.pushReplacement(
         context,
