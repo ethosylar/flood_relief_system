@@ -94,7 +94,6 @@ class _LoginPopupState extends State<LoginPopup> {
 
   void checkUserType() async {
     User? user = FirebaseAuth.instance.currentUser;
-
     if (user != null) {
       DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
           .collection('User')
@@ -108,24 +107,24 @@ class _LoginPopupState extends State<LoginPopup> {
         // Check the user type and perform actions accordingly
         switch (userType) {
           case 'FloodVictim':
-            final data = userSnapshot.data() as Map<String, dynamic>;
-            FloodVictim fv = FloodVictim.fromJson(data);
+            //final data = userSnapshot.data() as Map<String, dynamic>;
+            //FloodVictim fv = FloodVictim.fromJson(data);
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (BuildContext context) => HomePage()),
+              MaterialPageRoute(builder: (BuildContext context) => const HomePage()),
             );
             break;
           case 'Rescuer':
-            final data = userSnapshot.data() as Map<String, dynamic>;
-            Rescuers rs = Rescuers.fromJson(data);
-            _addRescuerLocationToDatabase(context,rs);
+            //final data = userSnapshot.data() as Map<String, dynamic>;
+            //Rescuers rs = Rescuers.fromJson(data);
+            _addRescuerLocationToDatabase(context);
             break;
           case 'Admin':
-            final data = userSnapshot.data() as Map<String, dynamic>;
-            Admin ad = Admin.fromJson(data);
+            //final data = userSnapshot.data() as Map<String, dynamic>;
+            //Admin ad = Admin.fromJson(data);
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (BuildContext context) => AdminPage()),
+              MaterialPageRoute(builder: (BuildContext context) => const AdminPage()),
             );
             break;
           default:
@@ -144,7 +143,7 @@ class _LoginPopupState extends State<LoginPopup> {
     );
   }
 
-  Future<void> _addRescuerLocationToDatabase(BuildContext context, Rescuers rs) async {
+  Future<void> _addRescuerLocationToDatabase(BuildContext context) async {
     // Retrieve the current location of the Rescuer
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.best,
@@ -172,7 +171,7 @@ class _LoginPopupState extends State<LoginPopup> {
         status: "ONLINE",
       );
       await rescuerDocRef.set(rl.toJson());
-      final data = rs.toJson();
+      //final data = rs.toJson();
 
       Navigator.pushReplacement(
         context,

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flood_relief_system/FloodVictimDetail.dart';
 import 'package:flood_relief_system/pps_list.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -229,7 +230,13 @@ class _HomePageState extends State<HomePage> {
                 Icons.settings,
                 color: Colors.black,
               ),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (BuildContext context) =>
+                            const FloodVictimDetail()));
+              },
             ),
           ],
         ),

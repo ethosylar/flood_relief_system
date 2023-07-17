@@ -9,20 +9,21 @@ import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
+import 'FloodVictim.dart';
 import 'Rescuers.dart';
 import 'auth/auth_provider.dart';
 import 'auth/authenticationService.dart';
 import 'auth/login_popup.dart';
 import 'home.dart';
 
-class UserDetail extends StatefulWidget {
-  const UserDetail({Key? key}) : super(key: key);
+class FloodVictimDetail extends StatefulWidget {
+  const FloodVictimDetail({Key? key}) : super(key: key);
 
   @override
-  _UserDetailState createState() => _UserDetailState();
+  _FloodVictimDetailState createState() => _FloodVictimDetailState();
 }
 
-class _UserDetailState extends State<UserDetail> {
+class _FloodVictimDetailState extends State<FloodVictimDetail> {
   Completer<GoogleMapController> _controller = Completer();
   //static final Position position =
   //final Future<FirebaseApp> _fApp = Firebase.initializeApp();
@@ -30,17 +31,17 @@ class _UserDetailState extends State<UserDetail> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final CollectionReference _reference =
-      FirebaseFirestore.instance.collection('User');
+  FirebaseFirestore.instance.collection('User');
   LatLng? _tappedLocation;
   Set<Marker> _markers = {};
   Marker? _currentLocationMarker;
   Marker? _tappedLocationMarker;
   final CollectionReference _placemarkCollection =
-      FirebaseFirestore.instance.collection('PPS');
+  FirebaseFirestore.instance.collection('PPS');
   StreamSubscription<DocumentSnapshot>? _locationSubscription;
   LatLng? _userBLocation;
   Marker? _userBMarker;
-  Rescuers rescuersData = Rescuers();
+  FloodVictim fvData = FloodVictim();
 
   void initState() {
     super.initState();
@@ -140,9 +141,9 @@ class _UserDetailState extends State<UserDetail> {
   Future<void> _getUserData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userId = authProvider.userId;
-    Rescuers rs = await getRescuerDataFromFirestore(userId);
+    FloodVictim fv = await getFloodVictimDataFromFirestore(userId);
     setState(() {
-      rescuersData = rs;
+      fvData = fv;
     });
   }
 
@@ -154,100 +155,125 @@ class _UserDetailState extends State<UserDetail> {
     _getUserData();
     return MaterialApp(
         home: Scaffold(
-      appBar: AppBar(
-          title: const Text('FlooRS: Flood Relief System'),
-          foregroundColor: Colors.black,
-          backgroundColor: Colors.blue,
-          actions: [
-            IconButton(
-              icon: Icon(Icons.logout),
-              onPressed: () {
-                context.read<AuthenticationService>().signOut();
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (BuildContext context) => HomePage()));
-              }, // Reload data on refresh icon pressed
+          appBar: AppBar(
+              title: const Text('FlooRS: Flood Relief System'),
+              foregroundColor: Colors.black,
+              backgroundColor: Colors.blue,
+              actions: [
+                IconButton(
+                  icon: Icon(Icons.logout),
+                  onPressed: () {
+                    context.read<AuthenticationService>().signOut();
+                    Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (BuildContext context) => HomePage()));
+                  }, // Reload data on refresh icon pressed
+                ),
+              ]),
+          body: FutureBuilder<QuerySnapshot>(
+            future: _placemarkCollection.get(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Text('Something went wrong.'),
+                );
+              }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+              if (snapshot.hasData) {
+                QuerySnapshot querySnapshot = snapshot.data!;
+                List<QueryDocumentSnapshot> documents = querySnapshot.docs;
+                List<PPS> pps = querySnapshot.docs.map((doc) {
+                  Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+                  return PPS(
+                    pps_id: doc.id,
+                    pps_long: data['pps_long'],
+                    pps_name: data['pps_name'],
+                    pps_status: data['pps_status'],
+                    pps_lat: data["pps_lat"],
+                    pps_cur_capacity: data["pps_cur_capacity"],
+                    pps_capacity: data["pps_capacity"],
+                    pps_address: data["pps_address"],
+                  );
+                }).toList();
+
+              } else {
+                return const Center(
+                  child: Text('No staff'),
+                );
+              }
+            },
+          ),
+          bottomNavigationBar: BottomAppBar(
+            color: Colors.blue,
+            // this creates a notch in the center of the bottom bar
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 6,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.home,
+                    color: Colors.black,
+                  ),
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (BuildContext context) => HomePage()));
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.login_rounded,
+                    color: Colors.black,
+                  ),
+                  onPressed: () {
+                    _showLoginPopup(context);
+                  },
+                ),
+                const SizedBox(
+                  width: 20,
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.account_circle,
+                    color: Colors.black,
+                  ),
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (BuildContext context) => PPSList()));
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.account_circle,
+                    color: Colors.black,
+                  ),
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (BuildContext context) => FloodVictimDetail()));
+                  },
+                ),
+              ],
             ),
-          ]),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Name: ${rescuersData.name}'),
-          Text('Email: ${rescuersData.email}'),
-          Text('Phone No: ${rescuersData.phoneno}'),
-          Text('Create At: ${rescuersData.createAt}'),
-          Text('Body Tag: ${rescuersData.rescuers_bodyid}'),
-          Text('Position: ${rescuersData.rescuers_position}'),
-          Text('Rescuer Type: ${rescuersData.rescuers_type}'),
-        ],
-      ),
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.blue,
-        // this creates a notch in the center of the bottom bar
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 6,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            IconButton(
-              icon: const Icon(
-                Icons.home,
-                color: Colors.black,
-              ),
-              onPressed: () {
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (BuildContext context) => HomePage()));
-              },
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.login_rounded,
-                color: Colors.black,
-              ),
-              onPressed: () {
-                _showLoginPopup(context);
-              },
-            ),
-            const SizedBox(
-              width: 20,
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.account_circle,
-                color: Colors.black,
-              ),
-              onPressed: () {
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (BuildContext context) => PPSList()));
-              },
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.account_circle,
-                color: Colors.black,
-              ),
-              onPressed: () {
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (BuildContext context) => UserDetail()));
-              },
-            ),
-          ],
-        ),
-      ),
-      //implement the floating button
-      floatingActionButton: FloatingActionButton(
-          onPressed: _sendHelp,
-          backgroundColor: Colors.black38,
-          child: const Icon(Icons.add)),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-    ));
+          ),
+          //implement the floating button
+          floatingActionButton: FloatingActionButton(
+              onPressed: _sendHelp,
+              backgroundColor: Colors.black38,
+              child: const Icon(Icons.add)),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        ));
   }
 
   //Camera pans to the current location
@@ -258,7 +284,7 @@ class _UserDetailState extends State<UserDetail> {
       // User is logged in, proceed with sending location data
       // Add location data to Firestore
       CollectionReference locationCollection =
-          FirebaseFirestore.instance.collection('user_locations');
+      FirebaseFirestore.instance.collection('user_locations');
       locationCollection.add({
         'userId': user.uid,
         'latitude': currentLocation!.latitude,
@@ -444,16 +470,16 @@ class _UserDetailState extends State<UserDetail> {
     }
   }
 
-  Future<Rescuers> getRescuerDataFromFirestore(String userId) async {
+  Future<FloodVictim> getFloodVictimDataFromFirestore(String userId) async {
     final DocumentReference documentRef = FirebaseFirestore.instance.collection('User').doc(userId);
     final DocumentSnapshot snapshot = await documentRef.get();
 
     if (snapshot.exists) {
       final data = snapshot.data() as Map<String, dynamic>;
 
-      return Rescuers.fromJson(data);
+      return FloodVictim.fromJson(data);
     }
 
-    return Rescuers();
+    return FloodVictim();
   }
 }
