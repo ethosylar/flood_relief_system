@@ -10,6 +10,7 @@ class RescuersLocation{
   double? location_res_lat;
   double? location_res_long;
   DateTime? datetime;
+  String? status;
 
   RescuersLocation({
     this.rescuer_id_location,
@@ -17,6 +18,7 @@ class RescuersLocation{
     this.location_res_lat,
     this.location_res_long,
     this.datetime,
+    this.status,
   });
 
   factory RescuersLocation.fromJson(Map<String, dynamic> json) => RescuersLocation(
@@ -25,6 +27,7 @@ class RescuersLocation{
     location_res_lat: json["location_res_lat"],
     location_res_long: json["location_res_long"],
     datetime: json["datetime"],
+      status: json["status"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -33,5 +36,6 @@ class RescuersLocation{
     "location_res_lat": location_res_lat,
     "location_res_long": location_res_long,
     "datetime": datetime,
+    "status": status,
   };
 }

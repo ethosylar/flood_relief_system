@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flood_relief_system/Admin.dart';
 import 'package:flood_relief_system/RescuerLocation.dart';
 import 'package:flood_relief_system/auth/signup_popup.dart';
 import 'package:flood_relief_system/home.dart';
@@ -8,6 +9,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 
 import '../AdminHomePage.dart';
+import '../FloodVictim.dart';
+import '../Rescuers.dart';
 import '../RescuerHomePage.dart';
 
 
@@ -100,15 +103,21 @@ class _LoginPopupState extends State<LoginPopup> {
         // Check the user type and perform actions accordingly
         switch (userType) {
           case 'FloodVictim':
+            final data = userSnapshot.data() as Map<String, dynamic>;
+            FloodVictim fv = FloodVictim.fromJson(data);
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (BuildContext context) => HomePage()),
             );
             break;
           case 'Rescuer':
-            _addRescuerLocationToDatabase(context);
+            final data = userSnapshot.data() as Map<String, dynamic>;
+            Rescuers rs = Rescuers.fromJson(data);
+            _addRescuerLocationToDatabase(context,rs);
             break;
           case 'Admin':
+            final data = userSnapshot.data() as Map<String, dynamic>;
+            Admin ad = Admin.fromJson(data);
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (BuildContext context) => AdminPage()),
@@ -130,7 +139,7 @@ class _LoginPopupState extends State<LoginPopup> {
     );
   }
 
-  Future<void> _addRescuerLocationToDatabase(BuildContext context) async {
+  Future<void> _addRescuerLocationToDatabase(BuildContext context, Rescuers rs) async {
     // Retrieve the current location of the Rescuer
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.best,
@@ -155,12 +164,16 @@ class _LoginPopupState extends State<LoginPopup> {
         location_res_lat: position.latitude,
         location_res_long: position.longitude,
         datetime: datetime,
+        status: "ONLINE",
       );
       await rescuerDocRef.set(rl.toJson());
+      final data = rs.toJson();
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (BuildContext context) => RescuerPage()),
+      Navigator.pushNamed(
+        context, '../RescuerHomePage',
+        arguments: {
+          data,
+        }
       );
     } else {
       // User is not logged in, show a prompt to log in

@@ -153,6 +153,7 @@ class _SignupPopupState extends State<SignupPopup> {
         fv_icno: _icnoController.text,
         fv_long: _currentPosition!.latitude,
         fv_lat: _currentPosition!.longitude,
+        password: _passwordController.text,
       );
 
       await addUser(fv);

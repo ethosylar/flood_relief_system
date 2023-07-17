@@ -37,10 +37,10 @@ class Rescuers extends Users {
       name: json["name"],
       phoneno: json["phone"],
       userType: json["userType"],
-    rescuers_bodyid: json["rescuers_bodyid"],
+      rescuers_bodyid: json["rescuers_bodyid"],
       rescuers_position: json["rescuers_position"],
       rescuers_type: json["rescuers_type"],
-
+      password: json["password"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -53,5 +53,6 @@ class Rescuers extends Users {
     "rescuers_bodyid": rescuers_bodyid,
     "rescuers_position": rescuers_position,
     "rescuers_type": rescuers_type,
+    "password": password,
   };
 }

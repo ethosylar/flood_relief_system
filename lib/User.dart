@@ -10,17 +10,25 @@ class Users {
   DateTime? createAt;
   String? phoneno;
   String? userType;
+  String? password;
 
-  Users({this.user_id, required this.email, required this.createAt, required this.name, required this.phoneno,  this.userType});
+  Users(
+      {this.user_id,
+      required this.email,
+      required this.createAt,
+      required this.name,
+      required this.phoneno,
+      this.userType,
+      this.password});
 
   factory Users.fromJson(Map<String, dynamic> json) => Users(
-        user_id: json["user_id"],
-        email: json["email"],
-        createAt: json["createAt"],
-        name: json["name"],
-        phoneno: json["phone"],
-        userType: json["userType"]
-      );
+      user_id: json["user_id"],
+      email: json["email"],
+      createAt: json["createAt"],
+      name: json["name"],
+      phoneno: json["phone"],
+      userType: json["userType"],
+      password: json["password"]);
 
   String? getEmail() {
     return email;
@@ -34,11 +42,11 @@ class Users {
     return createAt;
   }
 
-  String? getName(){
+  String? getName() {
     return name;
   }
 
-  void setName(String n){
+  void setName(String n) {
     name = n;
   }
 
@@ -61,6 +69,7 @@ class Users {
         "createAt": createAt,
         "phone": phoneno,
         "userType": userType,
+        "password": password,
       };
 }
 

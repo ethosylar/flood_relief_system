@@ -30,7 +30,7 @@ class FloodVictim extends Users {
     this.fv_icno,
     this.fv_lat,
     this.fv_long,
-  }) : super(user_id: user_id, email: email,  createAt: createAt, phoneno: phoneno, name: name);
+  }) : super(user_id: user_id, email: email,  createAt: createAt, phoneno: phoneno, name: name, password:password);
 
   factory FloodVictim.fromJson(Map<String, dynamic> json) => FloodVictim(
       user_id: json["user_id"],
@@ -43,6 +43,7 @@ class FloodVictim extends Users {
       fv_icno: json["fv_icno"],
     fv_lat: json["fv_lat"],
     fv_long: json["fv_long"],
+    password: json["password"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -56,5 +57,6 @@ class FloodVictim extends Users {
     "fv_icno": fv_icno,
     "fv_lat": fv_lat,
     "fv_long": fv_long,
+    "password": password,
   };
 }
