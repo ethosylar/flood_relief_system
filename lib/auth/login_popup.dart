@@ -7,11 +7,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../AdminHomePage.dart';
 import '../FloodVictim.dart';
 import '../Rescuers.dart';
 import '../RescuerHomePage.dart';
+import 'auth_provider.dart';
 
 
 class LoginPopup extends StatefulWidget {
@@ -76,6 +78,9 @@ class _LoginPopupState extends State<LoginPopup> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      String? uid = userCredential.user?.uid;
+      authProvider.login(uid!);
       // Successful login, do something (e.g., navigate to the next screen)
       print('Login successful!');
       print('User: ${userCredential.user?.email}');
@@ -169,11 +174,9 @@ class _LoginPopupState extends State<LoginPopup> {
       await rescuerDocRef.set(rl.toJson());
       final data = rs.toJson();
 
-      Navigator.pushNamed(
-        context, '../RescuerHomePage',
-        arguments: {
-          data,
-        }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (BuildContext context) => const RescuerPage()),
       );
     } else {
       // User is not logged in, show a prompt to log in

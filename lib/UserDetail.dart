@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import 'Rescuers.dart';
+import 'auth/auth_provider.dart';
 import 'auth/authenticationService.dart';
 import 'auth/login_popup.dart';
 import 'home.dart';
@@ -137,30 +138,11 @@ class _UserDetailState extends State<UserDetail> {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    final arguments = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
-    final user_id= arguments?["user_id"];
-    final email= arguments?["email"];
-    final createAt= arguments?["createAt"];
-    final name= arguments?["name"];
-    final phoneno= arguments?["phone"];
-    final userType= arguments?["userType"];
-    final rescuers_bodyid= arguments?["rescuers_bodyid"];
-    final rescuers_position= arguments?["rescuers_position"];
-    final rescuers_type= arguments?["rescuers_type"];
-    final password = arguments?["password"];
-
-    Rescuers rs = Rescuers(
-      user_id: user_id,
-      email: email,
-      name: name,
-      createAt: createAt,
-      phoneno: phoneno,
-      userType: userType,
-      password: password,
-      rescuers_bodyid: rescuers_bodyid,
-      rescuers_position: rescuers_position,
-      rescuers_type: rescuers_type,
-    );
+    final authProvider = Provider.of<AuthProvider>(context);
+    final userId = authProvider.userId;
+    CollectionReference rescuersCollection = FirebaseFirestore.instance.collection('User');
+    final rescuerDocRef = rescuersCollection.doc(userId);
+    Rescuers.fromJson(data);
     return MaterialApp(
         home: Scaffold(
       appBar: AppBar(

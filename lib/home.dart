@@ -9,6 +9,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
+import 'auth/auth_provider.dart';
 import 'auth/authenticationService.dart';
 import 'auth/login_popup.dart';
 
@@ -26,12 +27,14 @@ class _HomePageState extends State<HomePage> {
   Position? currentLocation;
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final CollectionReference _reference = FirebaseFirestore.instance.collection('User');
+  final CollectionReference _reference =
+      FirebaseFirestore.instance.collection('User');
   LatLng? _tappedLocation;
   Set<Marker> _markers = {};
   Marker? _currentLocationMarker;
   Marker? _tappedLocationMarker;
-  final CollectionReference _placemarkCollection = FirebaseFirestore.instance.collection('PPS');
+  final CollectionReference _placemarkCollection =
+      FirebaseFirestore.instance.collection('PPS');
   StreamSubscription<DocumentSnapshot>? _locationSubscription;
   LatLng? _userBLocation;
   Marker? _userBMarker;
@@ -244,59 +247,49 @@ class _HomePageState extends State<HomePage> {
   Future<void> _sendHelp() async {
     FirebaseAuth auth = FirebaseAuth.instance;
     User? user = auth.currentUser;
-    if (user != null) {
-      // User is logged in, proceed with sending location data
-      // Add location data to Firestore
-      CollectionReference locationCollection =
-          FirebaseFirestore.instance.collection('user_locations');
-      locationCollection.add({
-        'userId': user.uid,
-        'latitude': currentLocation!.latitude,
-        'longitude': currentLocation!.longitude,
-        'timestamp': DateTime.now(),
-      });
+    final authProvider = Provider.of<AuthProvider>(context);
+    if (authProvider.isLoggedIn) {
+      if (user != null) {
+        // User is logged in, proceed with sending location data
+        // Add location data to Firestore
+        CollectionReference locationCollection =
+            FirebaseFirestore.instance.collection('user_locations');
+        locationCollection.add({
+          'userId': user.uid,
+          'latitude': currentLocation!.latitude,
+          'longitude': currentLocation!.longitude,
+          'timestamp': DateTime.now(),
+        });
 
-      // Animate the camera to the current location
-      final GoogleMapController controller = await _controller.future;
-      controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-        bearing: 192.8334901395799,
-        target: LatLng(
-          currentLocation!.latitude,
-          currentLocation!.longitude,
-        ),
-        tilt: 59.440717697143555,
-        zoom: 19.151926040649414,
-      )
-      )
-      );
-      setState(() {
-        _currentLocationMarker = Marker(
-          markerId: MarkerId('currentLocation'),
-          position: LatLng(
+        // Animate the camera to the current location
+        final GoogleMapController controller = await _controller.future;
+        controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+          bearing: 192.8334901395799,
+          target: LatLng(
             currentLocation!.latitude,
             currentLocation!.longitude,
           ),
-          infoWindow: InfoWindow(title: 'You Are Here!'),
-        );
-        _markers.add(_currentLocationMarker!);
-      });
-    } else {
-      // User is not logged in, show a prompt to log in
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Not Logged In'),
-            content: Text('Please log in to send help.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Close'),
-              ),
-            ],
+          tilt: 59.440717697143555,
+          zoom: 19.151926040649414,
+        )));
+        setState(() {
+          _currentLocationMarker = Marker(
+            markerId: MarkerId('currentLocation'),
+            position: LatLng(
+              currentLocation!.latitude,
+              currentLocation!.longitude,
+            ),
+            infoWindow: InfoWindow(title: 'You Are Here!'),
           );
-        },
-      );
+          _markers.add(_currentLocationMarker!);
+        });
+      } else {
+        // User is not logged in, navigate to the login page
+        Navigator.pop(context);
+      }
+    } else {
+      // User is not logged in, navigate to the login page
+      Navigator.pop(context);
     }
   }
 

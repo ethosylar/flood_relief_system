@@ -2,7 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flood_relief_system/splashscreens.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'auth/auth_provider.dart';
 
 void main () async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +17,17 @@ class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
+    child: MaterialApp(
+      home: splash(),
+    ),
+    );
+  }
+
+}
+
+/*
     return FutureBuilder<bool>(
       future: _isFirstLaunch(),
       builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
@@ -48,5 +62,4 @@ class MyApp extends StatelessWidget {
     // Clear Firebase Authentication data
     FirebaseAuth auth = FirebaseAuth.instance;
     await auth.signOut();
-  }
-}
+  }*/
