@@ -48,7 +48,6 @@ class _FloodVictimDetailState extends State<FloodVictimDetail> {
     getCurrentLocation();
     requestLocationPermission();
     _startLocationUpdates();
-    _getUserData();
   }
 
   @override
@@ -138,21 +137,17 @@ class _FloodVictimDetailState extends State<FloodVictimDetail> {
     });
   }
 
-  Future<void> _getUserData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userId = authProvider.userId;
-    FloodVictim fv = await getFloodVictimDataFromFirestore(userId);
-    setState(() {
-      fvData = fv;
-    });
+  Future<DocumentSnapshot<Map<String, dynamic>>> getUserDetails(String userId) async {
+    final DocumentSnapshot<Map<String, dynamic>> snapshot =
+    await FirebaseFirestore.instance.collection('User').doc(userId).get();
+    return snapshot;
   }
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context);
     final userId = authProvider.userId;
-    _getUserData();
     return MaterialApp(
         home: Scaffold(
           appBar: AppBar(
@@ -171,42 +166,92 @@ class _FloodVictimDetailState extends State<FloodVictimDetail> {
                   }, // Reload data on refresh icon pressed
                 ),
               ]),
-          body: FutureBuilder<QuerySnapshot>(
-            future: _placemarkCollection.get(),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return const Center(
-                  child: Text('Something went wrong.'),
-                );
-              }
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
-              if (snapshot.hasData) {
-                QuerySnapshot querySnapshot = snapshot.data!;
-                List<QueryDocumentSnapshot> documents = querySnapshot.docs;
-                List<PPS> pps = querySnapshot.docs.map((doc) {
-                  Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-                  return PPS(
-                    pps_id: doc.id,
-                    pps_long: data['pps_long'],
-                    pps_name: data['pps_name'],
-                    pps_status: data['pps_status'],
-                    pps_lat: data["pps_lat"],
-                    pps_cur_capacity: data["pps_cur_capacity"],
-                    pps_capacity: data["pps_capacity"],
-                    pps_address: data["pps_address"],
-                  );
-                }).toList();
+          body: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            future: getUserDetails(userId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator(); // Display a loading indicator while fetching data
+                }
+                if (snapshot.hasData && snapshot.data != null) {
+                  final userDetails = snapshot.data!;
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 50),
+                      // -- Form Fields
+                      Form(
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              keyboardType: TextInputType.name,
+                              decoration: InputDecoration(
+                                  label: Text(userDetails.data()?['name']), prefixIcon: Icon(Icons.person)),
+                            ),
+                            TextFormField(
+                              keyboardType: TextInputType.emailAddress,
+                              decoration:  InputDecoration(
+                                  label: Text(userDetails.data()?['email']), prefixIcon: Icon(Icons.email)),
+                            ),
+                            TextFormField(
+                              keyboardType: TextInputType.phone,
+                              decoration: InputDecoration(
+                                  label: Text(userDetails.data()?['phone']), prefixIcon: Icon(Icons.phone)),
+                            ),
+                            TextFormField(
+                              decoration: InputDecoration(
+                                  label: Text(userDetails.data()?['fv_icno']), prefixIcon: Icon(Icons.credit_card)),
+                            ),
+                            TextFormField(
+                              keyboardType: TextInputType.streetAddress,
+                              decoration: InputDecoration(
+                                  label: Text(userDetails.data()?['fv_address']), prefixIcon: Icon(Icons.home_sharp)),
+                            ),
+                            TextFormField(
+                              keyboardType: TextInputType.datetime,
+                              decoration: InputDecoration(
+                                  label: Text(userDetails.data()?['createAt']), prefixIcon: Icon(Icons.access_time_outlined)),
+                            ),
+                            TextFormField(
+                              keyboardType: TextInputType.none,
+                              decoration: InputDecoration(
+                                  label: Text(userDetails.data()?['userType']), prefixIcon: Icon(Icons.manage_accounts_sharp)),
+                            ),
+                            TextFormField(
+                              keyboardType: TextInputType.none,
+                              decoration: InputDecoration(
+                                  label: Text(userDetails.data()?['user_id']), prefixIcon: Icon(Icons.security_sharp)),
+                            ),
 
-              } else {
-                return const Center(
-                  child: Text('No staff'),
-                );
-              }
-            },
+                            // -- Form Submit Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () { UpdateProfileScreen();},
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    side: BorderSide.none,
+                                    shape: const StadiumBorder()),
+                                child: const Text('Edit Profile', style: TextStyle(color: Colors.blueAccent)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      Text('Name: ${userDetails.data()?['name']}'),
+                      Text('Email: ${userDetails.data()?['email']}'),
+                      Text('Phone No: ${userDetails.data()?['phone']}'),
+                      Text('IC No: ${userDetails.data()?['fv_icno']}'),
+                      Text('Address: ${userDetails.data()?['fv_address']}'),
+                      Text('Create At: ${userDetails.data()?['createAt']}'),
+                      Text('User Type: ${userDetails.data()?['userType']}'),
+                    ],
+                  );
+                }
+
+                // Handle the case where the user details couldn't be fetched
+                return Text('Failed to fetch user details.');
+              },
           ),
           bottomNavigationBar: BottomAppBar(
             color: Colors.blue,
@@ -470,16 +515,8 @@ class _FloodVictimDetailState extends State<FloodVictimDetail> {
     }
   }
 
-  Future<FloodVictim> getFloodVictimDataFromFirestore(String userId) async {
-    final DocumentReference documentRef = FirebaseFirestore.instance.collection('User').doc(userId);
-    final DocumentSnapshot snapshot = await documentRef.get();
+  void UpdateProfileScreen(){
 
-    if (snapshot.exists) {
-      final data = snapshot.data() as Map<String, dynamic>;
-
-      return FloodVictim.fromJson(data);
-    }
-
-    return FloodVictim();
   }
+
 }

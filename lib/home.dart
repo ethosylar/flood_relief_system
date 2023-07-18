@@ -37,14 +37,20 @@ class _HomePageState extends State<HomePage> {
   final CollectionReference _placemarkCollection =
       FirebaseFirestore.instance.collection('PPS');
   StreamSubscription<DocumentSnapshot>? _locationSubscription;
+  LatLng? _userALocation;
   LatLng? _userBLocation;
   Marker? _userBMarker;
+  StreamSubscription<DocumentSnapshot>? _userALocationSubscription;
+  StreamSubscription<QuerySnapshot>? _userBLocationSubscription;
+
 
   void initState() {
     super.initState();
     getCurrentLocation();
     requestLocationPermission();
-    _startLocationUpdates();
+    _startLocationUpdates('');
+    _startUserALocationUpdates();
+    _startUserBLocationUpdates();
   }
 
   @override
@@ -54,9 +60,8 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  void _startLocationUpdates() {
-    // Replace 'userBUID' with the actual UID of user B
-    String userBUID = 'userBUID';
+  void _startLocationUpdates(String userId) {
+    String userBUID = userId;
 
     _locationSubscription = FirebaseFirestore.instance
         .collection('user_locations')
@@ -81,7 +86,66 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _startUserBLocationUpdates() {
+    _userBLocationSubscription = FirebaseFirestore.instance
+        .collection('help_rescuers')
+        .snapshots()
+        .listen((querySnapshot) {
+      querySnapshot.docChanges.forEach((change) {
+        // Retrieve the live location data of user B from the query snapshot
+        double latitude = change.doc.data()!['latitude'];
+        double longitude = change.doc.data()!['longitude'];
+
+        if (latitude != null && longitude != null) {
+          // Update the user B location
+          setState(() {
+            _userBLocation = LatLng(latitude, longitude);
+          });
+
+          // Update the markers on the map
+          _updateMarkers();
+        }
+      });
+    });
+  }
+
   void _stopLocationUpdates() {
+    _userALocationSubscription?.cancel();
+    _userBLocationSubscription?.cancel();
+    _userALocation = null;
+    _userBLocation = null;
+    _markers.clear();
+  }
+
+  void _updateMarkers() {
+    setState(() {
+      _markers.clear();
+
+      if (_userALocation != null) {
+        // Add a marker for User A's location
+        _markers.add(
+          Marker(
+            markerId: MarkerId('userA'),
+            position: _userALocation!,
+            infoWindow: InfoWindow(title: 'User A Location'),
+          ),
+        );
+      }
+
+      if (_userBLocation != null) {
+        // Add a marker for User B's location
+        _markers.add(
+          Marker(
+            markerId: MarkerId('userB'),
+            position: _userBLocation!,
+            infoWindow: InfoWindow(title: 'User B Location'),
+          ),
+        );
+      }
+    });
+  }
+
+  void _stopLocationUpdate() {
     _locationSubscription?.cancel();
     _userBLocation = null;
     _userBMarker = null;
@@ -102,6 +166,33 @@ class _HomePageState extends State<HomePage> {
           infoWindow: InfoWindow(title: 'Your Rescuers Location'),
         );
         _markers.add(_userBMarker!);
+      }
+    });
+  }
+
+  void _startUserALocationUpdates() {
+    // Replace 'userAUID' with the actual UID of user A
+    String userAUID = 'userAUID';
+
+    _userALocationSubscription = FirebaseFirestore.instance
+        .collection('help_fv')
+        .doc(userAUID)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        // Retrieve the live location data of user A from the snapshot
+        double latitude = snapshot.data()?['latitude'];
+        double longitude = snapshot.data()?['longitude'];
+
+        if (latitude != null && longitude != null) {
+          // Update the user A location
+          setState(() {
+            _userALocation = LatLng(latitude, longitude);
+          });
+
+          // Update the markers on the map
+          _updateMarkers();
+        }
       }
     });
   }
@@ -134,9 +225,78 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _findClosestRescuerLocation() async {
+    // Retrieve User A's location
+    double userALatitude = currentLocation?.latitude ?? 0.0;
+    double userALongitude = currentLocation?.longitude ?? 0.0;
+
+    // Retrieve the rescuers' locations from the "help_rescuers" collection
+    QuerySnapshot rescuersSnapshot =
+    await FirebaseFirestore.instance.collection('help_rescuers').get();
+
+    // Filter the rescuers based on their online status
+    List<QueryDocumentSnapshot> onlineRescuers = rescuersSnapshot.docs
+        .where((rescuerDoc) => rescuerDoc['status'] == "ONLINE")
+        .toList();
+
+    if (onlineRescuers.isEmpty) {
+      // No online rescuers found
+      return;
+    }
+
+    // Calculate the distances between User A and each rescuer's location
+    List<Map<String, dynamic>> distances = rescuersSnapshot.docs
+        .map((rescuerDoc) {
+      double rescuerLatitude = rescuerDoc['location_res_lat'];
+      double rescuerLongitude = rescuerDoc['location_res_long'];
+      double distance = Geolocator.distanceBetween(
+        userALatitude,
+        userALongitude,
+        rescuerLatitude,
+        rescuerLongitude,
+      );
+      return {
+        'rescuerId': rescuerDoc.id,
+        'distance': distance,
+      };
+    })
+        .toList();
+
+    // Sort the distances in ascending order
+    distances.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
+
+    // Retrieve the ID of the closest rescuer
+    String closestRescuerId = distances.isNotEmpty ? distances.first['rescuerId'] : '';
+
+    if (closestRescuerId.isNotEmpty) {
+      // Retrieve the closest rescuer's location from the "help_rescuers" collection
+      DocumentSnapshot closestRescuerSnapshot = await FirebaseFirestore.instance
+          .collection('help_rescuers')
+          .doc(closestRescuerId)
+          .get();
+
+      if (closestRescuerSnapshot.exists) {
+        double closestRescuerLatitude = closestRescuerSnapshot['latitude'];
+        double closestRescuerLongitude = closestRescuerSnapshot['longitude'];
+
+        // Update User B's location in the "help_livelocation" collection
+        await FirebaseFirestore.instance
+            .collection('help_livelocation')
+            .doc('userBUID') // Replace with the actual UID of user B
+            .set({
+          'latitude': closestRescuerLatitude,
+          'longitude': closestRescuerLongitude,
+        });
+      }
+    }
+  }
+
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final userId = authProvider.userId;
     return MaterialApp(
         home: Scaffold(
       appBar: AppBar(
@@ -145,9 +305,9 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: Colors.blue,
           actions: [
             IconButton(
-              icon: Icon(Icons.logout),
+              icon: Icon(Icons.location_off_sharp),
               onPressed: () {
-                context.read<AuthenticationService>().signOut();
+                _stopLocationUpdates();
                 Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
@@ -254,18 +414,23 @@ class _HomePageState extends State<HomePage> {
   Future<void> _sendHelp() async {
     FirebaseAuth auth = FirebaseAuth.instance;
     User? user = auth.currentUser;
-    final authProvider = Provider.of<AuthProvider>(context);
+    //final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    String? uid = user?.uid;
+    authProvider.login(uid!);
     if (authProvider.isLoggedIn) {
       if (user != null) {
         // User is logged in, proceed with sending location data
         // Add location data to Firestore
         CollectionReference locationCollection =
-            FirebaseFirestore.instance.collection('user_locations');
+            FirebaseFirestore.instance.collection('help_fv');
         locationCollection.add({
           'userId': user.uid,
           'latitude': currentLocation!.latitude,
           'longitude': currentLocation!.longitude,
           'timestamp': DateTime.now(),
+          'status': 'ACTIVE',
+          'helpdetails': 'Im Trapped'
         });
 
         // Animate the camera to the current location
