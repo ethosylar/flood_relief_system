@@ -43,12 +43,11 @@ class _HomePageState extends State<HomePage> {
   StreamSubscription<DocumentSnapshot>? _userALocationSubscription;
   StreamSubscription<QuerySnapshot>? _userBLocationSubscription;
 
-
   void initState() {
     super.initState();
     getCurrentLocation();
     requestLocationPermission();
-    _startLocationUpdates('');
+    //_startLocationUpdates();
     _startUserALocationUpdates();
     _startUserBLocationUpdates();
   }
@@ -161,7 +160,7 @@ class _HomePageState extends State<HomePage> {
       if (_userBLocation != null) {
         // Add a new marker for user B's location
         _userBMarker = Marker(
-          markerId: MarkerId('userB'),
+          markerId: MarkerId('Rescuer'),
           position: _userBLocation!,
           infoWindow: InfoWindow(title: 'Your Rescuers Location'),
         );
@@ -225,7 +224,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _findClosestRescuerLocation() async {
+  Future<void> _findClosestRescuerLocation(String userId) async {
     // Retrieve User A's location
     double userALatitude = currentLocation?.latitude ?? 0.0;
     double userALongitude = currentLocation?.longitude ?? 0.0;
@@ -282,7 +281,7 @@ class _HomePageState extends State<HomePage> {
         // Update User B's location in the "help_livelocation" collection
         await FirebaseFirestore.instance
             .collection('help_livelocation')
-            .doc('userBUID') // Replace with the actual UID of user B
+            .doc(userId) // Replace with the actual UID of user B
             .set({
           'latitude': closestRescuerLatitude,
           'longitude': closestRescuerLongitude,
@@ -454,6 +453,10 @@ class _HomePageState extends State<HomePage> {
             infoWindow: InfoWindow(title: 'You Are Here!'),
           );
           _markers.add(_currentLocationMarker!);
+        });
+        // Start the timer to periodically find the closest rescuer location
+        Timer.periodic(Duration(seconds: 5), (_) {
+          _findClosestRescuerLocation(user.uid);
         });
       } else {
         // User is not logged in, navigate to the login page
